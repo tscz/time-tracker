@@ -1,0 +1,16 @@
+os: windows
+language: shell
+script:
+- choco install autoit.portable
+- which Aut2exe 
+- Aut2exe //in "src/time-tracker.au3" //out "time-tracker.exe" //gui
+- cmd //c tree //F . 
+- cmd //c tree //F $ChocolateyInstall
+deploy:
+  provider: releases
+  api_key: $API_KEY
+  file: "time-tracker.exe"
+  skip_cleanup: true
+  draft: true
+after_deploy:
+- travis_terminate 0
