@@ -3,7 +3,7 @@ language: shell
 script:
 - choco install autoit.portable
 - which Aut2exe 
-- Aut2exe //in "src/time-tracker.au3" //out "time-tracker.exe" //icon "src/Designbolts-Seo-Time-Management.ico" //gui
+- Aut2exe //in "src/time-tracker.au3" //out "time-tracker.exe" //icon "src/Grafikartes-Flat-Retro-Modern-Time-machine.ico" //gui
 deploy:
   provider: releases
   api_key: $API_KEY
