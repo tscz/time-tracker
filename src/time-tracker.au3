@@ -5,47 +5,55 @@ If @OSVersion = 'WIN_81' Then DllCall("User32.dll", "bool", "SetProcessDPIAware"
 #NoTrayIcon
 #include <Array.au3>
 #include <File.au3>
+#include <GuiListView.au3>
 
+#include <GUIConstantsEx.au3>
 #include <MsgBoxConstants.au3>
 #include <StringConstants.au3>
 #include <TrayConstants.au3>
 
+
 Opt("TrayMenuMode", 3) ; The default tray menu items will not be shown and items are not checked when selected. These are options 1 and 2 for TrayMenuMode.
 Opt("TrayOnEventMode", 1) ; Enable TrayOnEventMode.
 
-Global $iCurrentTask = 0
+HotKeySet("^+1", "setCurrentTaskViaHotkey")
+HotKeySet("^+2", "setCurrentTaskViaHotkey")
+HotKeySet("^+3", "setCurrentTaskViaHotkey")
+HotKeySet("^+4", "setCurrentTaskViaHotkey")
+HotKeySet("^+5", "setCurrentTaskViaHotkey")
+HotKeySet("^+6", "setCurrentTaskViaHotkey")
+HotKeySet("^+7", "setCurrentTaskViaHotkey")
+HotKeySet("^+8", "setCurrentTaskViaHotkey")
+HotKeySet("^+9", "setCurrentTaskViaHotkey")
+HotKeySet("^+0", "setCurrentTaskViaHotkey")
+
+Global $iAllTasks = []
+Global $iAllTasksTrayItems = []
 
 main()
 
 Func main()
 
 	Local $sFilePath = @LocalAppDataDir & "\time-tracker\tasks.csv"
-	Local $aArray = 0
 
-	CreateOrReadConfig($sFilePath, $aArray)
+	CreateOrReadConfig($sFilePath)
 
-	TrayLoop($aArray)
+	TrayLoop()
 
 EndFunc   ;==>main
 
 
 
-Func CreateOrReadConfig($sFilePath, ByRef $aArray)
+Func CreateOrReadConfig($sFilePath)
 
 	Local $hFileOpen = FileOpen($sFilePath, BitOR($FO_APPEND, $FO_CREATEPATH))
 	If $hFileOpen = -1 Then Return SetError(1, 0, 0)
-
 	FileClose($hFileOpen)
 
-	Local $emptyTaskList[2] = [1, "No Task definied"]
-
-
 	If FileGetSize($sFilePath) = 0 Then
-		$aArray = $emptyTaskList
+		$iAllTasks = 0
 	Else
-		; Read the current script file into an array using the variable defined previously.
-		; $iFlag is specified as 0 in which the array count will not be defined. Use UBound() to find the size of the array.
-		If Not _FileReadToArray($sFilePath, $aArray) Then
+		If Not _FileReadToArray($sFilePath, $iAllTasks,$FRTA_NOCOUNT,",") Then
 			MsgBox($MB_SYSTEMMODAL, "", "There was an error reading the file. @error: " & @error) ; An error occurred reading the current script file.
 		EndIf
 	EndIf
@@ -53,27 +61,24 @@ Func CreateOrReadConfig($sFilePath, ByRef $aArray)
 EndFunc   ;==>CreateOrReadConfig
 
 
-Func TrayLoop(ByRef $aArray)
-	$iCurrentTask = TrayCreateItem("No Current Task") ;
-	Local $iSettings = TrayCreateMenu("Swich Current task") ; Create a tray menu sub menu with two sub items.
+Func TrayLoop()
+	ReDim $iAllTasksTrayItems[UBound($iAllTasks)]
 
-
-	For $i = 1 To $aArray[0]
-		$aArray[$i] = TrayCreateItem($aArray[$i], $iSettings, -1, $TRAY_ITEM_RADIO)
-		TrayItemSetOnEvent(-1, "setCurrentTask")
+	For $i = 0 To UBound($iAllTasks) - 1
+		$iAllTasksTrayItems[$i] = TrayCreateItem($iAllTasks[$i][0] & ":" & $iAllTasks[$i][1], -1, -1, $TRAY_ITEM_RADIO)
+		TrayItemSetOnEvent(-1, "setCurrentTaskViaMouse")
 	Next
+
+	If UBound($iAllTasksTrayItems) > 0 Then TrayItemSetState($iAllTasksTrayItems[0],$TRAY_CHECKED)
 
 	TrayCreateItem("") ; Create a separator line.
 
 	Local $idAbout = TrayCreateItem("Manage Tasks")
-	TrayItemSetOnEvent(-1, "About")
+	TrayItemSetOnEvent(-1, "ShowGui")
 	TrayCreateItem("") ; Create a separator line.
 
 	Local $idExit = TrayCreateItem("Exit")
 	TrayItemSetOnEvent(-1, "ExitScript")
-
-
-	TraySetOnEvent($TRAY_EVENT_PRIMARYDOUBLE, "About") ; Display the About MsgBox when the tray icon is double clicked on with the primary mouse button.
 
 	TraySetState($TRAY_ICONSTATE_SHOW) ; Show the tray menu.
 
@@ -82,17 +87,67 @@ Func TrayLoop(ByRef $aArray)
 	WEnd
 EndFunc   ;==>TrayLoop
 
-Func setCurrentTask()
-	TrayItemSetText($iCurrentTask, TrayItemGetText(@TRAY_ID))
-	TrayTip("New Task set", TrayItemGetText(@TRAY_ID), 0, $TIP_ICONASTERISK)
 
+Func setCurrentTaskViaHotkey()
+	Local $hotkeyId = StringRight(@HotKeyPressed,1)
+
+	If $hotkeyId > UBound($iAllTasksTrayItems) Then Return
+
+
+	Local $newCurrentTask = 0
+	If $hotkeyId = 0 Then
+		$newCurrentTask = $iAllTasksTrayItems[9]
+	Else
+		$newCurrentTask = $iAllTasksTrayItems[$hotkeyId-1]
+	EndIf
+
+	setCurrentTask(TrayItemGetText($newCurrentTask))
+
+	For $task In $iAllTasksTrayItems
+		If $task == $newCurrentTask Then
+			TrayItemSetState($task,$TRAY_CHECKED)
+		Else
+			TrayItemSetState($task,$TRAY_UNCHECKED)
+		EndIf
+	Next
+EndFunc
+
+Func setCurrentTaskViaMouse()
+	setCurrentTask(TrayItemGetText(@TRAY_ID))
 EndFunc   ;==>setCurrentTask
 
-Func About()
-	; Display a message box about the AutoIt version and installation path of the AutoIt executable.
-	MsgBox($MB_SYSTEMMODAL, "", "AutoIt tray menu example." & @CRLF & @CRLF & _
-			"Version: " & @AutoItVersion & @CRLF & _
-			"Install Path: " & StringLeft(@AutoItExe, StringInStr(@AutoItExe, "\", $STR_NOCASESENSEBASIC, -1) - 1)) ; Find the folder of a full path.
+Func setCurrentTask($text)
+	TrayTip("New Task set", $text, 0, $TIP_ICONASTERISK)
+EndFunc   ;==>setCurrentTask
+
+Func ShowGui()
+	; Create a GUI with various controls.
+	Local $hGUI = GUICreate("Manage Tasks")
+	Local $idOK = GUICtrlCreateButton("Close", 310, 370, 85, 25)
+
+	$idListview = GUICtrlCreateListView("", 2, 2, 394, 268)
+	GUISetState(@SW_SHOW)
+
+	; Add columns
+	_GUICtrlListView_AddColumn($idListview, "Task-ID", 100)
+	_GUICtrlListView_AddColumn($idListview, "Task", 100)
+
+	; Display the GUI.
+	GUISetState(@SW_SHOW, $hGUI)
+
+	_GUICtrlListView_AddArray($idListview, $iAllTasks)
+
+	; Loop until the user exits.
+	While 1
+		Switch GUIGetMsg()
+			Case $GUI_EVENT_CLOSE, $idOK
+				ExitLoop
+
+		EndSwitch
+	WEnd
+
+	; Delete the previous GUI and all controls.
+	GUIDelete($hGUI)
 EndFunc   ;==>About
 
 Func ExitScript()
