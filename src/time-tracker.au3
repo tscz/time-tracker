@@ -1,127 +1,59 @@
-; For values available to Windows 10 users - https://docs.microsoft.com/en-gb/windows/win32/hidpi/dpi-awareness-context
+; Enforce DPI Awareness for High-Res Displays, see https://docs.microsoft.com/en-gb/windows/win32/hidpi/dpi-awareness-context
 If @OSVersion = 'WIN_10' Then DllCall("User32.dll", "bool", "SetProcessDpiAwarenessContext", "HWND", "DPI_AWARENESS_CONTEXT" - 2)
 If @OSVersion = 'WIN_81' Then DllCall("User32.dll", "bool", "SetProcessDPIAware")
 
+; Do no show autoit tray icon during startup
 #NoTrayIcon
+
+; Libraries
 #include <Array.au3>
 #include <File.au3>
 #include <GuiListView.au3>
 
+; Constants
 #include <GUIConstantsEx.au3>
 #include <MsgBoxConstants.au3>
 #include <StringConstants.au3>
 #include <TrayConstants.au3>
 
+; Options
+Opt("TrayMenuMode", 3) ;0=append, 1=no default menu, 2=no automatic check, 4=menuitemID  not return
+Opt("TrayOnEventMode", 1) ;0=disable, 1=enable
 
-Opt("TrayMenuMode", 3) ; The default tray menu items will not be shown and items are not checked when selected. These are options 1 and 2 for TrayMenuMode.
-Opt("TrayOnEventMode", 1) ; Enable TrayOnEventMode.
+; Hotkeys (^=CTRL, +=SHIFT)
+HotKeySet("^+1", "SetCurrentTaskViaHotkey")
+HotKeySet("^+2", "SetCurrentTaskViaHotkey")
+HotKeySet("^+3", "SetCurrentTaskViaHotkey")
+HotKeySet("^+4", "SetCurrentTaskViaHotkey")
+HotKeySet("^+5", "SetCurrentTaskViaHotkey")
+HotKeySet("^+6", "SetCurrentTaskViaHotkey")
+HotKeySet("^+7", "SetCurrentTaskViaHotkey")
+HotKeySet("^+8", "SetCurrentTaskViaHotkey")
+HotKeySet("^+9", "SetCurrentTaskViaHotkey")
+HotKeySet("^+0", "SetCurrentTaskViaHotkey")
 
-HotKeySet("^+1", "setCurrentTaskViaHotkey")
-HotKeySet("^+2", "setCurrentTaskViaHotkey")
-HotKeySet("^+3", "setCurrentTaskViaHotkey")
-HotKeySet("^+4", "setCurrentTaskViaHotkey")
-HotKeySet("^+5", "setCurrentTaskViaHotkey")
-HotKeySet("^+6", "setCurrentTaskViaHotkey")
-HotKeySet("^+7", "setCurrentTaskViaHotkey")
-HotKeySet("^+8", "setCurrentTaskViaHotkey")
-HotKeySet("^+9", "setCurrentTaskViaHotkey")
-HotKeySet("^+0", "setCurrentTaskViaHotkey")
+; Constants
+Global Const $configFile = @LocalAppDataDir & "\time-tracker\tasks.csv"
 
-Global $iAllTasks = []
-Global $iAllTasksTrayItems = []
+; Variables
+Global $iAllTasks = [] ; Array of all available Tasks
+Global $iAllTasksTrayItems = [] ; Array of all available Task Tray Items
 
-main()
+; Main script
+Main()
 
-Func main()
-
-	Local $sFilePath = @LocalAppDataDir & "\time-tracker\tasks.csv"
-
-	CreateOrReadConfig($sFilePath)
-
-	TrayLoop()
-
-EndFunc   ;==>main
-
-
-
-Func CreateOrReadConfig($sFilePath)
-
-	Local $hFileOpen = FileOpen($sFilePath, BitOR($FO_APPEND, $FO_CREATEPATH))
-	If $hFileOpen = -1 Then Return SetError(1, 0, 0)
-	FileClose($hFileOpen)
-
-	If FileGetSize($sFilePath) = 0 Then
-		$iAllTasks = 0
-	Else
-		If Not _FileReadToArray($sFilePath, $iAllTasks,$FRTA_NOCOUNT,",") Then
-			MsgBox($MB_SYSTEMMODAL, "", "There was an error reading the file. @error: " & @error) ; An error occurred reading the current script file.
-		EndIf
-	EndIf
-
-EndFunc   ;==>CreateOrReadConfig
-
-
-Func TrayLoop()
-	ReDim $iAllTasksTrayItems[UBound($iAllTasks)]
-
-	For $i = 0 To UBound($iAllTasks) - 1
-		$iAllTasksTrayItems[$i] = TrayCreateItem($iAllTasks[$i][0] & ":" & $iAllTasks[$i][1], -1, -1, $TRAY_ITEM_RADIO)
-		TrayItemSetOnEvent(-1, "setCurrentTaskViaMouse")
-	Next
-
-	If UBound($iAllTasksTrayItems) > 0 Then TrayItemSetState($iAllTasksTrayItems[0],$TRAY_CHECKED)
-
-	TrayCreateItem("") ; Create a separator line.
-
-	Local $idAbout = TrayCreateItem("Manage Tasks")
-	TrayItemSetOnEvent(-1, "ShowGui")
-	TrayCreateItem("") ; Create a separator line.
-
-	Local $idExit = TrayCreateItem("Exit")
-	TrayItemSetOnEvent(-1, "ExitScript")
-
-	TraySetState($TRAY_ICONSTATE_SHOW) ; Show the tray menu.
+Func Main()
+	InitConfig()
+	InitTray()
 
 	While 1
 		Sleep(100) ; An idle loop.
 	WEnd
-EndFunc   ;==>TrayLoop
-
-
-Func setCurrentTaskViaHotkey()
-	Local $hotkeyId = StringRight(@HotKeyPressed,1)
-
-	If $hotkeyId > UBound($iAllTasksTrayItems) Then Return
-
-
-	Local $newCurrentTask = 0
-	If $hotkeyId = 0 Then
-		$newCurrentTask = $iAllTasksTrayItems[9]
-	Else
-		$newCurrentTask = $iAllTasksTrayItems[$hotkeyId-1]
-	EndIf
-
-	setCurrentTask(TrayItemGetText($newCurrentTask))
-
-	For $task In $iAllTasksTrayItems
-		If $task == $newCurrentTask Then
-			TrayItemSetState($task,$TRAY_CHECKED)
-		Else
-			TrayItemSetState($task,$TRAY_UNCHECKED)
-		EndIf
-	Next
 EndFunc
 
-Func setCurrentTaskViaMouse()
-	setCurrentTask(TrayItemGetText(@TRAY_ID))
-EndFunc   ;==>setCurrentTask
+; Main GUI script
+Func MainGui()
 
-Func setCurrentTask($text)
-	TrayTip("New Task set", $text, 0, $TIP_ICONASTERISK)
-EndFunc   ;==>setCurrentTask
-
-Func ShowGui()
-	; Create a GUI with various controls.
 	Local $hGUI = GUICreate("Manage Tasks")
 	Local $idOK = GUICtrlCreateButton("Close", 310, 370, 85, 25)
 
@@ -148,9 +80,86 @@ Func ShowGui()
 
 	; Delete the previous GUI and all controls.
 	GUIDelete($hGUI)
-EndFunc   ;==>About
+EndFunc
+
+; Initialize and read configuration from file system
+Func InitConfig()
+
+	; Check if file exists. If not, try to create it.
+	Local $hFileOpen = FileOpen($configFile, BitOR($FO_APPEND, $FO_CREATEPATH))
+	If $hFileOpen = -1 Then
+		MsgBox($MB_SYSTEMMODAL, "", "There was an error reading the file " & $configFile & ". @error: " & @error) ; An error occurred reading the current script file.
+		Return SetError(1, 0, 0)
+	EndIf
+	FileClose($hFileOpen)
+
+	; Read file input into global array
+	If FileGetSize($configFile) = 0 Then
+		$iAllTasks = 0
+	Else
+		If Not _FileReadToArray($configFile, $iAllTasks,$FRTA_NOCOUNT,",") Then
+			MsgBox($MB_SYSTEMMODAL, "", "There was an error reading the file. @error: " & @error) ; An error occurred reading the current script file.
+			Return SetError(1, 0, 0)
+		EndIf
+	EndIf
+
+	If @error Then Exit
+EndFunc
+
+; Initialize Tray Menu and add items for all Tasks
+Func InitTray()
+	ReDim $iAllTasksTrayItems[UBound($iAllTasks)]
+
+	For $i = 0 To UBound($iAllTasks) - 1
+		$iAllTasksTrayItems[$i] = TrayCreateItem($iAllTasks[$i][0] & ":" & $iAllTasks[$i][1], -1, -1, $TRAY_ITEM_RADIO)
+		TrayItemSetOnEvent(-1, "setCurrentTaskViaMouse")
+	Next
+
+	; Set task #1 as the default checked task
+	If UBound($iAllTasksTrayItems) > 0 Then TrayItemSetState($iAllTasksTrayItems[0],$TRAY_CHECKED)
+
+	TrayCreateItem("") ; Create a separator line.
+	TrayCreateItem("Manage Tasks")
+	TrayItemSetOnEvent(-1, "MainGui")
+
+	TrayCreateItem("") ; Create a separator line.
+	TrayCreateItem("Exit")
+	TrayItemSetOnEvent(-1, "ExitScript")
+
+	TraySetState($TRAY_ICONSTATE_SHOW) ; Show the tray menu.
+EndFunc
+
+Func SetCurrentTask($text)
+	TrayTip("Currently working on new task", $text, 0, $TIP_ICONASTERISK)
+EndFunc
+
+Func SetCurrentTaskViaHotkey()
+	Local $hotkeyId = StringRight(@HotKeyPressed,1)
+
+	If $hotkeyId > UBound($iAllTasksTrayItems) Then Return
+
+	Local $newCurrentTask = 0
+	If $hotkeyId = 0 Then
+		$newCurrentTask = $iAllTasksTrayItems[9]
+	Else
+		$newCurrentTask = $iAllTasksTrayItems[$hotkeyId-1]
+	EndIf
+
+	SetCurrentTask(TrayItemGetText($newCurrentTask))
+
+	For $task In $iAllTasksTrayItems
+		If $task == $newCurrentTask Then
+			TrayItemSetState($task,$TRAY_CHECKED)
+		Else
+			TrayItemSetState($task,$TRAY_UNCHECKED)
+		EndIf
+	Next
+EndFunc
+
+Func SetCurrentTaskViaMouse()
+	SetCurrentTask(TrayItemGetText(@TRAY_ID))
+EndFunc
 
 Func ExitScript()
 	Exit
-EndFunc   ;==>ExitScript
-
+EndFunc
