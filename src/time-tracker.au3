@@ -9,8 +9,10 @@ If @OSVersion = 'WIN_81' Then DllCall("User32.dll", "bool", "SetProcessDPIAware"
 #include <Array.au3>
 #include <File.au3>
 #include <GuiListView.au3>
+#include <time-tracker-db.au3>
 
 ; Constants
+#include <FileConstants.au3>
 #include <GUIConstantsEx.au3>
 #include <MsgBoxConstants.au3>
 #include <StringConstants.au3>
@@ -19,6 +21,8 @@ If @OSVersion = 'WIN_81' Then DllCall("User32.dll", "bool", "SetProcessDPIAware"
 ; Options
 Opt("TrayMenuMode", 3) ;0=append, 1=no default menu, 2=no automatic check, 4=menuitemID  not return
 Opt("TrayOnEventMode", 1) ;0=disable, 1=enable
+Opt("GUICoordMode", 2) ;1=absolute, 0=relative, 2=cell
+
 
 ; Hotkeys (^=CTRL, +=SHIFT)
 HotKeySet("^+1", "SetCurrentTaskViaHotkey")
@@ -33,16 +37,19 @@ HotKeySet("^+9", "SetCurrentTaskViaHotkey")
 HotKeySet("^+0", "SetCurrentTaskViaHotkey")
 
 ; Constants
-Global Const $configFile = @LocalAppDataDir & "\time-tracker\tasks.csv"
+Global Const $DLL = @LocalAppDataDir & "\time-tracker\sqlite_x64.dll"
 
 ; Variables
 Global $iAllTasks = [] ; Array of all available Tasks
 Global $iAllTasksTrayItems = [] ; Array of all available Task Tray Items
+Global $db = 0 ; Database object
 
 ; Main script
 Main()
 
 Func Main()
+	InitDlls()
+	$db = InitDb()
 	InitConfig()
 	InitTray()
 
@@ -54,27 +61,23 @@ EndFunc
 ; Main GUI script
 Func MainGui()
 
-	Local $hGUI = GUICreate("Manage Tasks")
-	Local $idOK = GUICtrlCreateButton("Close", 310, 370, 85, 25)
-
-	$idListview = GUICtrlCreateListView("", 2, 2, 394, 268)
-	GUISetState(@SW_SHOW)
-
-	; Add columns
+	Local $hGUI = GUICreate("Manage Tasks",500,400)
+	Local $idListview = GUICtrlCreateListView("", 10, 10, 480, 300)
 	_GUICtrlListView_AddColumn($idListview, "Task-ID", 100)
-	_GUICtrlListView_AddColumn($idListview, "Task", 100)
+	_GUICtrlListView_AddColumn($idListview, "Task", 350)
+	_GUICtrlListView_AddArray($idListview, $iAllTasks)
+	Local $idOK = GUICtrlCreateButton("Close", -1, 20, 100, 30)
+
 
 	; Display the GUI.
 	GUISetState(@SW_SHOW, $hGUI)
 
-	_GUICtrlListView_AddArray($idListview, $iAllTasks)
 
 	; Loop until the user exits.
 	While 1
 		Switch GUIGetMsg()
 			Case $GUI_EVENT_CLOSE, $idOK
 				ExitLoop
-
 		EndSwitch
 	WEnd
 
@@ -82,26 +85,27 @@ Func MainGui()
 	GUIDelete($hGUI)
 EndFunc
 
-; Initialize and read configuration from file system
+; Initialize external DLLs
+Func InitDlls()
+	Local $sDrive = "", $sDir = "", $sFileName = "", $sExtension = ""
+	Local $dllPath = _PathSplit($DLL, $sDrive, $sDir, $sFileName, $sExtension)
+
+	DirCreate($dllPath[$PATH_DRIVE] & $dllPath[$PATH_DIRECTORY])
+	FileInstall("../lib/sqlite3_29_0_x64.dll", $DLL, $FC_OVERWRITE)
+EndFunc
+
+Func InitDb()
+	Local $hDskDb = _DB_Startup($DLL)
+	_DB_InitSchema()
+
+	Return $hDskDb
+EndFunc
+
+
+; Initialize and read configuration from db
 Func InitConfig()
 
-	; Check if file exists. If not, try to create it.
-	Local $hFileOpen = FileOpen($configFile, BitOR($FO_APPEND, $FO_CREATEPATH))
-	If $hFileOpen = -1 Then
-		MsgBox($MB_SYSTEMMODAL, "", "There was an error reading the file " & $configFile & ". @error: " & @error) ; An error occurred reading the current script file.
-		Return SetError(1, 0, 0)
-	EndIf
-	FileClose($hFileOpen)
-
-	; Read file input into global array
-	If FileGetSize($configFile) = 0 Then
-		$iAllTasks = 0
-	Else
-		If Not _FileReadToArray($configFile, $iAllTasks,$FRTA_NOCOUNT,",") Then
-			MsgBox($MB_SYSTEMMODAL, "", "There was an error reading the file. @error: " & @error) ; An error occurred reading the current script file.
-			Return SetError(1, 0, 0)
-		EndIf
-	EndIf
+	$iAllTasks = _DB_GetTasks()
 
 	If @error Then Exit
 EndFunc
@@ -161,5 +165,6 @@ Func SetCurrentTaskViaMouse()
 EndFunc
 
 Func ExitScript()
+	_DB_Shutdown($db)
 	Exit
 EndFunc
