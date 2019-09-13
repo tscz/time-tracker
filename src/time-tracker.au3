@@ -10,6 +10,7 @@ If @OSVersion = 'WIN_81' Then DllCall("User32.dll", "bool", "SetProcessDPIAware"
 #include <File.au3>
 #include <GuiListView.au3>
 #include <time-tracker-db.au3>
+#include <time-tracker-gui.au3>
 
 ; Constants
 #include <FileConstants.au3>
@@ -40,9 +41,9 @@ HotKeySet("^+0", "SetCurrentTaskViaHotkey")
 Global Const $DLL = @LocalAppDataDir & "\time-tracker\sqlite_x64.dll"
 
 ; Variables
-Global $iAllTasks = [] ; Array of all available Tasks
 Global $iAllTasksTrayItems = [] ; Array of all available Task Tray Items
 Global $db = 0 ; Database object
+Global $activeTask = 0 ; Current active task
 
 ; Main script
 Main()
@@ -50,39 +51,12 @@ Main()
 Func Main()
 	InitDlls()
 	$db = InitDb()
-	InitConfig()
 	InitTray()
+	InitTrayTasks()
 
 	While 1
 		Sleep(100) ; An idle loop.
 	WEnd
-EndFunc
-
-; Main GUI script
-Func MainGui()
-
-	Local $hGUI = GUICreate("Manage Tasks",500,400)
-	Local $idListview = GUICtrlCreateListView("", 10, 10, 480, 300)
-	_GUICtrlListView_AddColumn($idListview, "Task-ID", 100)
-	_GUICtrlListView_AddColumn($idListview, "Task", 350)
-	_GUICtrlListView_AddArray($idListview, $iAllTasks)
-	Local $idOK = GUICtrlCreateButton("Close", -1, 20, 100, 30)
-
-
-	; Display the GUI.
-	GUISetState(@SW_SHOW, $hGUI)
-
-
-	; Loop until the user exits.
-	While 1
-		Switch GUIGetMsg()
-			Case $GUI_EVENT_CLOSE, $idOK
-				ExitLoop
-		EndSwitch
-	WEnd
-
-	; Delete the previous GUI and all controls.
-	GUIDelete($hGUI)
 EndFunc
 
 ; Initialize external DLLs
@@ -101,30 +75,11 @@ Func InitDb()
 	Return $hDskDb
 EndFunc
 
-
-; Initialize and read configuration from db
-Func InitConfig()
-
-	$iAllTasks = _DB_GetTasks()
-
-	If @error Then Exit
-EndFunc
-
 ; Initialize Tray Menu and add items for all Tasks
 Func InitTray()
-	ReDim $iAllTasksTrayItems[UBound($iAllTasks)]
-
-	For $i = 0 To UBound($iAllTasks) - 1
-		$iAllTasksTrayItems[$i] = TrayCreateItem($iAllTasks[$i][0] & ":" & $iAllTasks[$i][1], -1, -1, $TRAY_ITEM_RADIO)
-		TrayItemSetOnEvent(-1, "setCurrentTaskViaMouse")
-	Next
-
-	; Set task #1 as the default checked task
-	If UBound($iAllTasksTrayItems) > 0 Then TrayItemSetState($iAllTasksTrayItems[0],$TRAY_CHECKED)
-
 	TrayCreateItem("") ; Create a separator line.
 	TrayCreateItem("Manage Tasks")
-	TrayItemSetOnEvent(-1, "MainGui")
+	TrayItemSetOnEvent(-1, "OpenConfigGui")
 
 	TrayCreateItem("") ; Create a separator line.
 	TrayCreateItem("Exit")
@@ -133,8 +88,42 @@ Func InitTray()
 	TraySetState($TRAY_ICONSTATE_SHOW) ; Show the tray menu.
 EndFunc
 
+Func InitTrayTasks()
+
+	Local $iAllTasks = _DB_GetTasks()
+	ReDim $iAllTasksTrayItems[UBound($iAllTasks)]
+
+	For $i = UBound($iAllTasks) - 1 To 0 Step -1
+		$iAllTasksTrayItems[$i] = TrayCreateItem($iAllTasks[$i][0] & ":" & @TAB & $iAllTasks[$i][1], -1, 0, $TRAY_ITEM_RADIO)
+		TrayItemSetOnEvent(-1, "setCurrentTaskViaMouse")
+	Next
+
+	; Set task #1 as the default checked task
+	If UBound($iAllTasksTrayItems) > 0 Then TrayItemSetState($iAllTasksTrayItems[0],$TRAY_CHECKED)
+EndFunc
+
+
+Func ResetTray()
+	For $task In $iAllTasksTrayItems
+		TrayItemDelete($task)
+	Next
+EndFunc
+
+Func OpenConfigGui()
+	Local $theTasks = _DB_GetTasks()
+	MainGui($theTasks)
+	ResetTray()
+	InitTrayTasks()
+EndFunc
+
 Func SetCurrentTask($text)
 	TrayTip("Currently working on new task", $text, 0, $TIP_ICONASTERISK)
+
+	If $activeTask <> 0 Then _DB_EndWork($activeTask)
+
+	Local $task = StringSplit($text,":")[1]
+	_DB_BeginWork($task)
+	$activeTask = $task
 EndFunc
 
 Func SetCurrentTaskViaHotkey()
