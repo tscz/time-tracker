@@ -1,3 +1,4 @@
+#include-once
 #include <MsgBoxConstants.au3>
 #include <SQLite.au3>
 
@@ -7,7 +8,8 @@ Global Const $DB_FILE = @LocalAppDataDir & "\time-tracker\tasks.db"
 Global Const $QUERY_CREATE_TABLE_TASKS = "CREATE TABLE IF NOT EXISTS Tasks(id TEXT PRIMARY KEY, description TEXT);"
 Global Const $QUERY_CREATE_TABLE_TIMETRACKINGS = "CREATE TABLE IF NOT EXISTS Timetrackings(id INTEGER PRIMARY KEY, task_id TEXT, begin TEXT, end TEXT);"
 Global Const $QUERY_INSERT_TASK = "INSERT INTO Tasks(id,description) VALUES ('%s','%s');"
-Global Const $QUERY_GET_TASKS = "SELECT * FROM tasks;"
+Global Const $QUERY_DELETE_TASK = "DELETE FROM Tasks WHERE id='%s';"
+Global Const $QUERY_GET_TASKS = "SELECT * FROM Tasks;"
 Global Const $QUERY_GET_TIMETRACKINGS = "SELECT * FROM Timetrackings ORDER BY id;"
 Global Const $QUERY_INSERT_TIMETRACKING = "INSERT INTO Timetrackings(task_id,begin,end) VALUES ('%s',datetime('now','localtime'),datetime('now','localtime'));"
 Global Const $QUERY_UPDATE_TIMETRACKING = "UPDATE Timetrackings SET end=datetime('now','localtime') WHERE id='%s';"
@@ -15,7 +17,7 @@ Global Const $QUERY_UPDATE_TIMETRACKING = "UPDATE Timetrackings SET end=datetime
 
 ;Example()
 
-Func Example()
+Func DB_Example()
 	Local $hDskDb = _DB_Startup(@ScriptDir & "\..\lib\sqlite3_29_0.dll")
 	_DB_InitSchema()
 	_DB_AddTask("New Task 2","This is a new task")
@@ -61,7 +63,8 @@ Func _DB_AddTask($id,$description)
 	_SQLite_Exec(-1, StringFormat($QUERY_INSERT_TASK, $id, $description))
 EndFunc
 
-Func _DB_RemoveTask()
+Func _DB_RemoveTask($id)
+	_SQLite_Exec(-1, StringFormat($QUERY_DELETE_TASK, $id))
 EndFunc
 
 Func _DB_GetTasks()
@@ -92,13 +95,15 @@ Func _DB_EndWork($task)
 EndFunc
 
 Func _DB_GetTimeTrackings()
-	Local $hQuery, $aNames, $aRow
-	_SQLite_Query(-1, $QUERY_GET_TIMETRACKINGS, $hQuery)
-	_SQLite_FetchNames($hQuery, $aNames)
-	ConsoleWrite(StringFormat(" %-10s  %-10s  %-19s  %-20s", $aNames[0], $aNames[1], $aNames[2], $aNames[3]) & @CRLF)
-	While _SQLite_FetchData($hQuery, $aRow, False, False) = $SQLITE_OK ; Read Out the next Row
-		ConsoleWrite(StringFormat(" %-10s  %-10s  %-10s  %-10s  %-10s", $aRow[0], $aRow[1], $aRow[2], $aRow[3]) & @CRLF)
-	WEnd
+	Local $aResult, $iRows, $iColumns, $iRval
+	$iRval = _SQLite_GetTable2d(-1, $QUERY_GET_TIMETRACKINGS, $aResult, $iRows, $iColumns)
+	If $iRval = $SQLITE_OK Then
+		_ArrayDelete($aResult,0)
+		_SQLite_Display2DResult($aResult)
+		Return $aResult
+	Else
+		MsgBox($MB_SYSTEMMODAL, "SQLite Error: " & $iRval, _SQLite_ErrMsg())
+	EndIf
 EndFunc
 
 
