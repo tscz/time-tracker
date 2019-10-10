@@ -95,12 +95,17 @@ Func InitTrayTasks()
 	Local $iAllTasks = _DB_GetTasks()
 	ReDim $iAllTasksTrayItems[UBound($iAllTasks)]
 
+	; Create tray items
 	For $i = UBound($iAllTasks) - 1 To 0 Step -1
 		$iAllTasksTrayItems[$i] = TrayCreateItem($iAllTasks[$i][0] & ":" & @TAB & $iAllTasks[$i][1], -1, 0, $TRAY_ITEM_RADIO)
 		TrayItemSetOnEvent(-1, "setCurrentTaskViaMouse")
+
+		; Enable active task, if present
+		If $activeTask <> 0 Then
+			If $iAllTasks[$i][0] = $activeTask[1] Then	TrayItemSetState($iAllTasksTrayItems[$i],$TRAY_CHECKED)
+		EndIf
 	Next
 EndFunc
-
 
 Func ResetTray()
 	For $task In $iAllTasksTrayItems
@@ -109,16 +114,21 @@ Func ResetTray()
 EndFunc
 
 Func OpenConfigGui()
+	TraySetState($TRAY_ICONSTATE_HIDE)
+
 	Local $theTasks = _DB_GetTasks()
 	MainGui($theTasks)
 	ResetTray()
 	InitTrayTasks()
+
+	TraySetState($TRAY_ICONSTATE_SHOW)
+
 EndFunc
 
 Func SetCurrentTask($text)
 	TrayTip("Currently working on new task", $text, 0, $TIP_ICONASTERISK)
 
-	If $activeTask <> 0 Then _DB_EndWork($activeTask)
+	If $activeTask <> 0 Then _DB_EndWork($activeTask[0])
 
 	Local $task = StringSplit($text,":")[1]
 

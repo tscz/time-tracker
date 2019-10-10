@@ -11,6 +11,7 @@ Global Const $QUERY_INSERT_TASK = "INSERT INTO Tasks(id,description) VALUES ('%s
 Global Const $QUERY_DELETE_TASK = "DELETE FROM Tasks WHERE id='%s';"
 Global Const $QUERY_GET_TASKS = "SELECT * FROM Tasks;"
 Global Const $QUERY_GET_TIMETRACKINGS = "SELECT * FROM Timetrackings ORDER BY id;"
+Global Const $QUERY_GET_TIMETRACKING = "SELECT id,task_id FROM Timetrackings WHERE id='%s';"
 Global Const $QUERY_INSERT_TIMETRACKING = "INSERT INTO Timetrackings(task_id,begin,end) VALUES ('%s',datetime('now','localtime'),0);"
 Global Const $QUERY_UPDATE_TIMETRACKING = "UPDATE Timetrackings SET end=datetime('now','localtime') WHERE id='%s';"
 
@@ -22,8 +23,9 @@ Func DB_Example()
 	_DB_InitSchema()
 	;_DB_AddTask("New Task 2","This is a new task")
 	$id = _DB_BeginWork("New Task 5")
+	ConsoleWrite($id[0] & ":" & $id[1])
 	Sleep(2000)
-	_DB_EndWork($id)
+	_DB_EndWork($id[0])
 	_DB_GetTasks()
 	_DB_GetTimeTrackings()
 	_DB_Shutdown($hDskDb)
@@ -82,14 +84,18 @@ EndFunc
 ; Time Tracking Management
 
 Func _DB_BeginWork($task)
-	Local $id
 	_SQLite_Exec(-1, StringFormat($QUERY_INSERT_TIMETRACKING,$task))
+
+	Local $id
 	_SQLite_QuerySingleRow(-1,"SELECT last_insert_rowid()",$id)
-	Return $id[0]
+
+	Local $entry
+	_SQLite_QuerySingleRow(-1,StringFormat($QUERY_GET_TIMETRACKING,$id[0]),$entry)
+
+	Return $entry
 EndFunc
 
 Func _DB_EndWork($task)
-	Local $id
 	_SQLite_Exec(-1, StringFormat($QUERY_UPDATE_TIMETRACKING,$task))
 	Return $task
 EndFunc
