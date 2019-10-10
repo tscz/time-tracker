@@ -5,6 +5,9 @@ If @OSVersion = 'WIN_81' Then DllCall("User32.dll", "bool", "SetProcessDPIAware"
 ; Do no show autoit tray icon during startup
 #NoTrayIcon
 
+; Exit hook
+OnAutoItExitRegister("ExitScript")
+
 ; Libraries
 #include <Array.au3>
 #include <File.au3>
@@ -23,7 +26,6 @@ If @OSVersion = 'WIN_81' Then DllCall("User32.dll", "bool", "SetProcessDPIAware"
 Opt("TrayMenuMode", 3) ;0=append, 1=no default menu, 2=no automatic check, 4=menuitemID  not return
 Opt("TrayOnEventMode", 1) ;0=disable, 1=enable
 Opt("GUICoordMode", 2) ;1=absolute, 0=relative, 2=cell
-
 
 ; Hotkeys (^=CTRL, +=SHIFT)
 HotKeySet("^+1", "SetCurrentTaskViaHotkey")
@@ -50,7 +52,7 @@ Main()
 
 Func Main()
 	InitDlls()
-	$db = InitDb()
+	$db = InitDatabase()
 	InitTray()
 	InitTrayTasks()
 
@@ -68,11 +70,11 @@ Func InitDlls()
 	FileInstall("../lib/sqlite3_29_0_x64.dll", $DLL, $FC_OVERWRITE)
 EndFunc
 
-Func InitDb()
-	Local $hDskDb = _DB_Startup($DLL)
+Func InitDatabase()
+	Local $db = _DB_Startup($DLL)
 	_DB_InitSchema()
 
-	Return $hDskDb
+	Return $db
 EndFunc
 
 ; Initialize Tray Menu and add items for all Tasks
@@ -97,9 +99,6 @@ Func InitTrayTasks()
 		$iAllTasksTrayItems[$i] = TrayCreateItem($iAllTasks[$i][0] & ":" & @TAB & $iAllTasks[$i][1], -1, 0, $TRAY_ITEM_RADIO)
 		TrayItemSetOnEvent(-1, "setCurrentTaskViaMouse")
 	Next
-
-	; Set task #1 as the default checked task
-	If UBound($iAllTasksTrayItems) > 0 Then TrayItemSetState($iAllTasksTrayItems[0],$TRAY_CHECKED)
 EndFunc
 
 
@@ -122,8 +121,8 @@ Func SetCurrentTask($text)
 	If $activeTask <> 0 Then _DB_EndWork($activeTask)
 
 	Local $task = StringSplit($text,":")[1]
-	_DB_BeginWork($task)
-	$activeTask = $task
+
+	$activeTask = _DB_BeginWork($task)
 EndFunc
 
 Func SetCurrentTaskViaHotkey()

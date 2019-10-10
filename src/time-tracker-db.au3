@@ -11,18 +11,18 @@ Global Const $QUERY_INSERT_TASK = "INSERT INTO Tasks(id,description) VALUES ('%s
 Global Const $QUERY_DELETE_TASK = "DELETE FROM Tasks WHERE id='%s';"
 Global Const $QUERY_GET_TASKS = "SELECT * FROM Tasks;"
 Global Const $QUERY_GET_TIMETRACKINGS = "SELECT * FROM Timetrackings ORDER BY id;"
-Global Const $QUERY_INSERT_TIMETRACKING = "INSERT INTO Timetrackings(task_id,begin,end) VALUES ('%s',datetime('now','localtime'),datetime('now','localtime'));"
+Global Const $QUERY_INSERT_TIMETRACKING = "INSERT INTO Timetrackings(task_id,begin,end) VALUES ('%s',datetime('now','localtime'),0);"
 Global Const $QUERY_UPDATE_TIMETRACKING = "UPDATE Timetrackings SET end=datetime('now','localtime') WHERE id='%s';"
 
 
-;Example()
+;DB_Example()
 
 Func DB_Example()
 	Local $hDskDb = _DB_Startup(@ScriptDir & "\..\lib\sqlite3_29_0.dll")
 	_DB_InitSchema()
-	_DB_AddTask("New Task 2","This is a new task")
+	;_DB_AddTask("New Task 2","This is a new task")
 	$id = _DB_BeginWork("New Task 5")
-	Sleep(1000)
+	Sleep(2000)
 	_DB_EndWork($id)
 	_DB_GetTasks()
 	_DB_GetTimeTrackings()
