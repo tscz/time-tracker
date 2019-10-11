@@ -22,10 +22,15 @@ OnAutoItExitRegister("ExitScript")
 #include <StringConstants.au3>
 #include <TrayConstants.au3>
 
+#include <WinAPIProc.au3>
+#include <WinAPI.au3>
+#include <WinAPISys.au3>
+#include <GUIConstants.au3>
+#include <APISysConstants.au3>
+
 ; Options
 Opt("TrayMenuMode", 3) ;0=append, 1=no default menu, 2=no automatic check, 4=menuitemID  not return
 Opt("TrayOnEventMode", 1) ;0=disable, 1=enable
-Opt("GUICoordMode", 2) ;1=absolute, 0=relative, 2=cell
 
 ; Hotkeys (^=CTRL, +=SHIFT)
 HotKeySet("^+1", "SetCurrentTaskViaHotkey")
@@ -80,12 +85,16 @@ EndFunc
 ; Initialize Tray Menu and add items for all Tasks
 Func InitTray()
 	TrayCreateItem("") ; Create a separator line.
-	TrayCreateItem("Manage Tasks")
-	TrayItemSetOnEvent(-1, "OpenConfigGui")
+	Global $timeboxItem = TrayCreateItem("Start Timebox")
+	TrayItemSetOnEvent($timeboxItem, "OpenTimeboxGui")
 
 	TrayCreateItem("") ; Create a separator line.
-	TrayCreateItem("Exit")
-	TrayItemSetOnEvent(-1, "ExitScript")
+	Global $taskItem = TrayCreateItem("Manage Tasks")
+	TrayItemSetOnEvent($taskItem, "OpenConfigGui")
+
+	TrayCreateItem("") ; Create a separator line.
+	Global $exitItem = TrayCreateItem("Exit")
+	TrayItemSetOnEvent($exitItem, "ExitScript")
 
 	TraySetState($TRAY_ICONSTATE_SHOW) ; Show the tray menu.
 EndFunc
@@ -105,6 +114,11 @@ Func InitTrayTasks()
 			If $iAllTasks[$i][0] = $activeTask[1] Then	TrayItemSetState($iAllTasksTrayItems[$i],$TRAY_CHECKED)
 		EndIf
 	Next
+
+	; If no task is active, deactivate timebox
+	If $activeTask = 0 Then
+		TrayItemSetState($timeboxItem,$TRAY_DISABLE)
+	EndIf
 EndFunc
 
 Func ResetTray()
@@ -113,17 +127,69 @@ Func ResetTray()
 	Next
 EndFunc
 
+Func DeactivateTray()
+	For $task In $iAllTasksTrayItems
+		TrayItemSetState($task,$TRAY_DISABLE)
+	Next
+	TrayItemSetState($taskItem,$TRAY_DISABLE)
+EndFunc
+
+Func ActivateTray()
+	For $task In $iAllTasksTrayItems
+		TrayItemSetState($task,$TRAY_ENABLE)
+	Next
+	TrayItemSetState($taskItem,$TRAY_ENABLE)
+EndFunc
+
 Func OpenConfigGui()
+	Global $g_hForm = GUICreate('')
+	Global $CLOSE_EVENT = _WinAPI_RegisterWindowMessage('CLOSE_EVENT')
+	GUIRegisterMsg($CLOSE_EVENT, 'WM_SHELLHOOK')
+	_WinAPI_RegisterShellHookWindow($g_hForm)
+
 	TraySetState($TRAY_ICONSTATE_HIDE)
 
 	Local $theTasks = _DB_GetTasks()
-	MainGui($theTasks)
-	ResetTray()
-	InitTrayTasks()
+	Global $hGUI = MainGui($theTasks,$g_hForm)
 
-	TraySetState($TRAY_ICONSTATE_SHOW)
+
+
 
 EndFunc
+
+Func WM_SHELLHOOK($hWnd, $iMsg, $wParam, $lParam)
+    #forceref $iMsg
+
+	Switch $iMsg
+		Case $CLOSE_EVENT
+			ResetTray()
+			InitTrayTasks()
+			TraySetState($TRAY_ICONSTATE_SHOW)
+	EndSwitch
+EndFunc
+
+Func OpenTimeboxGui()
+	TraySetState($TRAY_ICONSTATE_HIDE)
+	Local $totalMinutes = InputBox("Timebox for Task '" & $activeTask[1] &"'", "Please enter timebox duration in minutes.")
+	TraySetState($TRAY_ICONSTATE_SHOW)
+
+	If $totalMinutes = "" Then Return
+
+	DeactivateTray()
+	TrayItemSetText($timeboxItem, "Stop Timebox")
+	TrayItemSetOnEvent($timeboxItem, "StopTimebox")
+
+	TimeboxGui($totalMinutes)
+EndFunc
+
+Func StopTimebox()
+	TimeboxGuiClose()
+	ActivateTray()
+	TrayItemSetText($timeboxItem, "Start Timebox")
+	TrayItemSetOnEvent($timeboxItem, "OpenTimeboxGui")
+EndFunc
+
+
 
 Func SetCurrentTask($text)
 	TrayTip("Currently working on new task", $text, 0, $TIP_ICONASTERISK)
@@ -133,6 +199,7 @@ Func SetCurrentTask($text)
 	Local $task = StringSplit($text,":")[1]
 
 	$activeTask = _DB_BeginWork($task)
+	TrayItemSetState($timeboxItem,$TRAY_ENABLE)
 EndFunc
 
 Func SetCurrentTaskViaHotkey()
@@ -164,5 +231,6 @@ EndFunc
 
 Func ExitScript()
 	_DB_Shutdown($db)
+	_WinAPI_DeregisterShellHookWindow($g_hForm)
 	Exit
 EndFunc
