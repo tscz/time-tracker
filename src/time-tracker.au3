@@ -56,6 +56,8 @@ Global $activeTask = 0 ; Current active task
 Main()
 
 Func Main()
+	Global $g_hForm = GUICreate('')
+
 	InitDlls()
 	$db = InitDatabase()
 	InitTray()
@@ -142,7 +144,6 @@ Func ActivateTray()
 EndFunc
 
 Func OpenConfigGui()
-	Global $g_hForm = GUICreate('')
 	Global $CLOSE_EVENT = _WinAPI_RegisterWindowMessage('CLOSE_EVENT')
 	GUIRegisterMsg($CLOSE_EVENT, 'WM_SHELLHOOK')
 	_WinAPI_RegisterShellHookWindow($g_hForm)
@@ -194,7 +195,7 @@ EndFunc
 Func SetCurrentTask($text)
 	TrayTip("Currently working on new task", $text, 0, $TIP_ICONASTERISK)
 
-	If $activeTask <> 0 Then _DB_EndWork($activeTask[0])
+	endActiveTask()
 
 	Local $task = StringSplit($text,":")[1]
 
@@ -230,7 +231,12 @@ Func SetCurrentTaskViaMouse()
 EndFunc
 
 Func ExitScript()
+	endActiveTask()
 	_DB_Shutdown($db)
 	_WinAPI_DeregisterShellHookWindow($g_hForm)
 	Exit
+EndFunc
+
+Func endActiveTask()
+	If $activeTask <> 0 Then _DB_EndWork($activeTask[0])
 EndFunc
