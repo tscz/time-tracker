@@ -91,7 +91,7 @@ Func Export()
 EndFunc
 
 Func TimeboxGui($totalMinutes)
-	Global $popup = GUICreate('TimeboxCounter', 170, 50, @DesktopWidth + (-330), @DesktopHeight + (-120), $WS_POPUPWINDOW,Default, WinGetHandle(AutoItWinGetTitle()))
+	Global $popup = GUICreate('TimeboxCounter', 170, 50, @DesktopWidth + (-180), @DesktopHeight + (-120), $WS_POPUPWINDOW,Default, WinGetHandle(AutoItWinGetTitle()))
 
 	GUISetBkColor(0x000000)
 	Global $clockLabel = GUICtrlCreateLabel('', 10, 0, 500, 100)
