@@ -87,8 +87,17 @@ EndFunc
 ; Initialize Tray Menu and add items for all Tasks
 Func InitTray()
 	TrayCreateItem("") ; Create a separator line.
-	Global $timeboxItem = TrayCreateItem("Start Timebox")
-	TrayItemSetOnEvent($timeboxItem, "OpenTimeboxGui")
+	Global $timeboxMenu = TrayCreateMenu("Timebox")
+	Global $timeboxItemStart = TrayCreateItem("Start",$timeboxMenu)
+	Global $timeboxItemStop = TrayCreateItem("Stop",$timeboxMenu)
+	Global $timeboxItemPause = TrayCreateItem("Pause",$timeboxMenu)
+
+	TrayItemSetOnEvent($timeboxItemStart, "OpenTimeboxGui")
+	TrayItemSetOnEvent($timeboxItemStop, "StopTimebox")
+	TrayItemSetOnEvent($timeboxItemPause, "PauseTimebox")
+
+	TrayItemSetState($timeboxItemStop,$TRAY_DISABLE)
+	TrayItemSetState($timeboxItemPause,$TRAY_DISABLE)
 
 	TrayCreateItem("") ; Create a separator line.
 	Global $taskItem = TrayCreateItem("Manage Tasks")
@@ -119,7 +128,7 @@ Func InitTrayTasks()
 
 	; If no task is active, deactivate timebox
 	If $activeTask = 0 Then
-		TrayItemSetState($timeboxItem,$TRAY_DISABLE)
+		TrayItemSetState($timeboxMenu,$TRAY_DISABLE)
 	EndIf
 EndFunc
 
@@ -174,23 +183,35 @@ Func OpenTimeboxGui()
 	Local $totalMinutes = InputBox("Timebox for Task '" & $activeTask[1] &"'", "Please enter timebox duration in minutes.")
 	TraySetState($TRAY_ICONSTATE_SHOW)
 
-	If $totalMinutes = "" Then Return
+	If $totalMinutes = "" Or StringIsInt($totalMinutes) = 0  Then Return
 
 	DeactivateTray()
-	TrayItemSetText($timeboxItem, "Stop Timebox")
-	TrayItemSetOnEvent($timeboxItem, "StopTimebox")
 
 	TimeboxGui($totalMinutes)
+
+	TrayItemSetState($timeboxItemStart,$TRAY_DISABLE)
+	TrayItemSetState($timeboxItemStop,$TRAY_ENABLE)
+	TrayItemSetState($timeboxItemPause,$TRAY_ENABLE)
 EndFunc
 
 Func StopTimebox()
 	TimeboxGuiClose()
 	ActivateTray()
-	TrayItemSetText($timeboxItem, "Start Timebox")
-	TrayItemSetOnEvent($timeboxItem, "OpenTimeboxGui")
+	TrayItemSetState($timeboxItemStart,$TRAY_ENABLE)
+	TrayItemSetState($timeboxItemStop,$TRAY_DISABLE)
+	TrayItemSetState($timeboxItemPause,$TRAY_DISABLE)
 EndFunc
 
-
+Func PauseTimebox()
+	Switch TrayItemGetText($timeboxItemPause)
+		Case "Pause"
+			TrayItemSetText($timeboxItemPause,"Resume")
+			TimeboxGuiPause()
+		Case "Resume"
+			TrayItemSetText($timeboxItemPause,"Pause")
+			TimeboxGuiResume()
+	EndSwitch
+EndFunc
 
 Func SetCurrentTask($text)
 	TrayTip("Currently working on new task", $text, 0, $TIP_ICONASTERISK)
@@ -200,7 +221,7 @@ Func SetCurrentTask($text)
 	Local $task = StringSplit($text,":")[1]
 
 	$activeTask = _DB_BeginWork($task)
-	TrayItemSetState($timeboxItem,$TRAY_ENABLE)
+	TrayItemSetState($timeboxMenu,$TRAY_ENABLE)
 EndFunc
 
 Func SetCurrentTaskViaHotkey()
