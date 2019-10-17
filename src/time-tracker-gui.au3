@@ -114,6 +114,16 @@ Func TimeboxGuiClose()
 	AdlibUnRegister("Timer")
 EndFunc
 
+Func TimeboxGuiPause()
+	AdlibUnRegister("Timer")
+	Global $delay = _DateDiff ( "s", _NowCalc(), $end )
+EndFunc
+
+Func TimeboxGuiResume()
+	$end = _DateAdd('s', $delay, _NowCalc())
+	AdlibRegister("Timer")
+EndFunc
+
 Func Timer()
 	Local $now = _NowCalc()
 	Local $difference =  _DateDiff ( "s", $now, $end )
