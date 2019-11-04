@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="http://icons.iconarchive.com/icons/grafikartes/flat-retro-modern/512/time-machine-icon.png" alt="Bootstrap logo" width="72" height="72">
+    <img src="./doc/time-machine-icon.png" alt="logo" width="72" height="72">
 </p>
 
 <h3 align="center">Time-Tracker</h3>
@@ -7,7 +7,7 @@
 <p align="center">
  A small systray time tracker for Windows.
 </p>
-
+ <p align="center"><img src="./doc/screenshot.png"width="400" alt="screenshot"></p>
 
 ## Table of contents
 
@@ -17,7 +17,6 @@
 - [Versioning](#versioning)
 - [Copyright and license](#copyright-and-license)
 
-
 ## Quick start
 
 Download the release, unzip it and start the time-tracker.exe:
@@ -26,12 +25,12 @@ Download the release, unzip it and start the time-tracker.exe:
 
 Read the [Documentation](#documentation) for developing and building infos.
 
-
 ## Status
 
 [![Build Status](https://travis-ci.com/tscz/time-tracker.svg?branch=master)](https://travis-ci.com/tscz/time-tracker)
 
 ## Documentation
+
 ```text
 time-tracker/
 └── src/
@@ -46,4 +45,5 @@ time-tracker/
 ## Versioning
 
 ## Copyright and license
+
 http://www.iconarchive.com/show/flat-retro-modern-icons-by-grafikartes/time-machine-icon.html
