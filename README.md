@@ -46,4 +46,5 @@ time-tracker/
 
 ## Copyright and license
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+
 http://www.iconarchive.com/show/flat-retro-modern-icons-by-grafikartes/time-machine-icon.html
