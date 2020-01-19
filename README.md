@@ -5,7 +5,7 @@
 <h3 align="center">Time-Tracker</h3>
 
 <p align="center">
- A small systray time tracker for Windows.
+ A small systray task time tracker for Windows.
 </p>
  <p align="center"><img src="./doc/screenshot.png"width="400" alt="screenshot"></p>
 
@@ -45,5 +45,5 @@ time-tracker/
 ## Versioning
 
 ## Copyright and license
-
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 http://www.iconarchive.com/show/flat-retro-modern-icons-by-grafikartes/time-machine-icon.html
