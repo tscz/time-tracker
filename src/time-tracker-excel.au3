@@ -5,10 +5,10 @@
 Func Excel_Export($tasks, $timetracking)
 	; Create application object and open an example workbook
 	Local $oExcel = _Excel_Open()
-	If @error Then Exit MsgBox($MB_SYSTEMMODAL, "Excel UDF: _Excel_SheetAdd Example", "Error creating the Excel application object." & @CRLF & "@error = " & @error & ", @extended = " & @extended)
+	If @error Then Exit MsgBox($MB_SYSTEMMODAL, "Excel Error", "Error creating the Excel application object." & @CRLF & "@error = " & @error & ", @extended = " & @extended)
 	Local $oWorkbook = _Excel_BookNew($oExcel, 1)
 	If @error Then
-		MsgBox($MB_SYSTEMMODAL, "Excel UDF: _Excel_SheetAdd Example", "Error opening workbook '" & @ScriptDir & "\Extras\_Excel1.xls'." & @CRLF & "@error = " & @error & ", @extended = " & @extended)
+		MsgBox($MB_SYSTEMMODAL, "Excel Error", "Error opening workbook '" & @ScriptDir & "\Extras\_Excel1.xls'." & @CRLF & "@error = " & @error & ", @extended = " & @extended)
 		_Excel_Close($oExcel)
 		Exit
 	EndIf
@@ -16,10 +16,10 @@ Func Excel_Export($tasks, $timetracking)
 	; Insert an index sheet with links to all other sheets.
 	; Handles Sheet names with spaces correctly.
 	Local $timetrackingSheet = _Excel_SheetAdd($oWorkbook, 1, False, 1, "Timetracking")
-	If @error Then Exit MsgBox($MB_SYSTEMMODAL, "Excel UDF: _Excel_SheetAdd Example 3", "Error adding sheet." & @CRLF & "@error = " & @error & ", @extended = " & @extended)
+	If @error Then Exit MsgBox($MB_SYSTEMMODAL, "Excel Error", "Error adding sheet." & @CRLF & "@error = " & @error & ", @extended = " & @extended)
 
 	Local $taskSheet = _Excel_SheetAdd($oWorkbook, 1, False, 1, "Tasks")
-	If @error Then Exit MsgBox($MB_SYSTEMMODAL, "Excel UDF: _Excel_SheetAdd Example 3", "Error adding sheet." & @CRLF & "@error = " & @error & ", @extended = " & @extended)
+	If @error Then Exit MsgBox($MB_SYSTEMMODAL, "Excel Error", "Error adding sheet." & @CRLF & "@error = " & @error & ", @extended = " & @extended)
 
 	_Excel_SheetDelete($oWorkbook,1)
 
