@@ -1,3 +1,11 @@
+; Compilation Directives
+#pragma compile(Compatibility, win10)
+#pragma compile(UPX, False)
+#pragma compile(FileDescription, time-tracker)
+#pragma compile(ProductName, time-tracker)
+#pragma compile(ProductVersion, 0.2)
+#pragma compile(FileVersion, 0.2.0.0)
+
 ; Enforce DPI Awareness for High-Res Displays, see https://docs.microsoft.com/en-gb/windows/win32/hidpi/dpi-awareness-context
 If @OSVersion = 'WIN_10' Then DllCall("User32.dll", "bool", "SetProcessDpiAwarenessContext", "HWND", "DPI_AWARENESS_CONTEXT" - 2)
 If @OSVersion = 'WIN_81' Then DllCall("User32.dll", "bool", "SetProcessDPIAware")

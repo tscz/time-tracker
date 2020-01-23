@@ -2,10 +2,7 @@ os: windows
 language: shell
 script:
 - choco install autoit.portable
-- which Aut2exe 
-- Aut2exe //in "src/time-tracker.au3" //out "time-tracker.exe" //icon "src/Grafikartes-Flat-Retro-Modern-Time-machine.ico" //gui //x64
-- ping 127.0.0.1 -n 5 > nul
-- 7z a time-tracker.zip time-tracker.exe
+- ./build.sh
 deploy:
   provider: releases
   api_key: $API_KEY
