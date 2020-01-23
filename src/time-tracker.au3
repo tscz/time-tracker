@@ -53,7 +53,7 @@ HotKeySet("^+9", "SetCurrentTaskViaHotkey")
 
 ; Constants
 Global Const $DLL = @LocalAppDataDir & "\time-tracker\sqlite_x64.dll"
-Global Const $TASK_PATTERN = "(.*):\t(.*) (\(CTRL\+SHIFT\+[0-9]\))"
+Global Const $TASK_PATTERN = "(.*):\t(.*) (\(Ctrl\+Shift\+[0-9]\))"
 
 ; Variables
 Global $iAllTasksTrayItems = [] ; Array of all available Task Tray Items
