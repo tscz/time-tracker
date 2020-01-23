@@ -75,9 +75,34 @@ Func DeleteTask()
 EndFunc
 
 Func AddTask()
-	Local $id = InputBox("Task-ID", "Please enter a task id.")
-	Local $description = InputBox("Task-Descriptio ", "Please enter a task description.")
-	_DB_AddTask($id,$description)
+	Local $id = InputBox("Task-ID", "Please enter a task id. (max. 12 characters)","", " " & 12)
+
+	If (@error <> 0) Then
+		Return
+	EndIf
+
+	If ($id = "") Then
+		MsgBox($MB_OK,"Invalid Task ID","A non empty task must be given.")
+		Return
+	EndIf
+
+	Local $description = InputBox("Task-Description", "Please enter a task description. (max. 40 characters)","", " " & 40)
+
+	If (@error <> 0) Then
+		Return
+	EndIf
+
+	If ($description = "") Then
+		MsgBox($MB_OK,"Invalid Description","A non empty description must be given.")
+		Return
+	EndIf
+
+	Local $exec = _DB_AddTask($id,$description)
+
+	If ($exec <> $DB_OK) Then
+		ReportLastDatabaseError()
+	EndIf
+
 	Refresh()
 EndFunc
 
@@ -142,4 +167,8 @@ Func Timer()
 	Local $g_sTime = StringFormat("%02i:%02i:%02i", $hours, $minutes, $seconds)
 	If GUICtrlRead($clockLabel) <> $g_sTime Then GUICtrlSetData($clockLabel, $g_sTime)
 
+EndFunc
+
+Func ReportLastDatabaseError()
+	MsgBox($MB_SYSTEMMODAL, "SQLite Error: " & _DB_LastErrorCode(), _DB_LastErrMsg())
 EndFunc

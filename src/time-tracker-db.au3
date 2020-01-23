@@ -1,9 +1,10 @@
 #include-once
-#include <MsgBoxConstants.au3>
 #include <SQLite.au3>
 
 ; Constants
 Global Const $DB_FILE = @LocalAppDataDir & "\time-tracker\tasks.db"
+Global Const $DB_ERROR = $SQLITE_ERROR
+Global Const $DB_OK = $SQLITE_OK
 
 Global Const $QUERY_CREATE_TABLE_TASKS = "CREATE TABLE IF NOT EXISTS Tasks(id TEXT PRIMARY KEY, description TEXT);"
 Global Const $QUERY_CREATE_TABLE_TIMETRACKINGS = "CREATE TABLE IF NOT EXISTS Timetrackings(id INTEGER PRIMARY KEY, task_id TEXT, begin TEXT, end TEXT);"
@@ -62,11 +63,11 @@ EndFunc
 ; Task Management
 
 Func _DB_AddTask($id,$description)
-	_SQLite_Exec(-1, StringFormat($QUERY_INSERT_TASK, $id, $description))
+	Return _SQLite_Exec(-1, StringFormat($QUERY_INSERT_TASK, $id, $description))
 EndFunc
 
 Func _DB_RemoveTask($id)
-	_SQLite_Exec(-1, StringFormat($QUERY_DELETE_TASK, $id))
+	Return _SQLite_Exec(-1, StringFormat($QUERY_DELETE_TASK, $id))
 EndFunc
 
 Func _DB_GetTasks()
@@ -77,7 +78,7 @@ Func _DB_GetTasks()
 		_SQLite_Display2DResult($aResult)
 		Return $aResult
 	Else
-		MsgBox($MB_SYSTEMMODAL, "SQLite Error: " & $iRval, _SQLite_ErrMsg())
+		Return $DB_ERROR
 	EndIf
 EndFunc
 
@@ -108,12 +109,17 @@ Func _DB_GetTimeTrackings()
 		_SQLite_Display2DResult($aResult)
 		Return $aResult
 	Else
-		MsgBox($MB_SYSTEMMODAL, "SQLite Error: " & $iRval, _SQLite_ErrMsg())
+		Return $DB_ERROR
 	EndIf
 EndFunc
 
+Func _DB_LastErrorCode()
+	Return _SQLite_ErrCode()
+EndFunc
 
-
+Func _DB_LastErrMsg()
+	Return _SQLite_ErrMsg()
+EndFunc
 
 
 
