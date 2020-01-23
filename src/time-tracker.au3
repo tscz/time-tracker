@@ -3,8 +3,8 @@
 #pragma compile(UPX, False)
 #pragma compile(FileDescription, time-tracker)
 #pragma compile(ProductName, time-tracker)
-#pragma compile(ProductVersion, 0.2)
-#pragma compile(FileVersion, 0.2.0.0)
+#pragma compile(ProductVersion, 0.2.1)
+#pragma compile(FileVersion, 0.2.1.0)
 
 ; Enforce DPI Awareness for High-Res Displays, see https://docs.microsoft.com/en-gb/windows/win32/hidpi/dpi-awareness-context
 If @OSVersion = 'WIN_10' Then DllCall("User32.dll", "bool", "SetProcessDpiAwarenessContext", "HWND", "DPI_AWARENESS_CONTEXT" - 2)
@@ -111,8 +111,11 @@ Func InitTray()
 	Global $taskItem = TrayCreateItem("Manage Tasks")
 	TrayItemSetOnEvent($taskItem, "OpenConfigGui")
 
+	Local $aboutItem = TrayCreateItem("About")
+	TrayItemSetOnEvent($aboutItem, "OpenGithubPage")
+
 	TrayCreateItem("") ; Create a separator line.
-	Global $exitItem = TrayCreateItem("Exit")
+	Local $exitItem = TrayCreateItem("Exit")
 	TrayItemSetOnEvent($exitItem, "ExitScript")
 
 	TraySetState($TRAY_ICONSTATE_SHOW) ; Show the tray menu.
@@ -125,7 +128,7 @@ Func InitTrayTasks()
 
 	; Create tray items
 	For $i = UBound($iAllTasks) - 1 To 0 Step -1
-		$iAllTasksTrayItems[$i] = TrayCreateItem($iAllTasks[$i][0] & ":" & @TAB & $iAllTasks[$i][1]  & " (CTRL+SHIFT+" & $i + 1 & ")", -1, 0, $TRAY_ITEM_RADIO)
+		$iAllTasksTrayItems[$i] = TrayCreateItem($iAllTasks[$i][0] & ":" & @TAB & EscapeStr($iAllTasks[$i][1])  & " (Ctrl+Shift+" & $i + 1 & ")", -1, 0, $TRAY_ITEM_RADIO)
 		TrayItemSetOnEvent(-1, "setCurrentTaskViaMouse")
 
 		; Enable active task, if present
@@ -169,10 +172,6 @@ Func OpenConfigGui()
 
 	Local $theTasks = _DB_GetTasks()
 	Global $hGUI = MainGui($theTasks,$g_hForm)
-
-
-
-
 EndFunc
 
 Func WM_SHELLHOOK($hWnd, $iMsg, $wParam, $lParam)
@@ -225,7 +224,7 @@ Func SetCurrentTask($text)
 	Local $task = StringRegExp($text,$TASK_PATTERN,$STR_REGEXPARRAYMATCH)
 
 	TrayTip("Now working on '" & $task[0] & "'", $task[1], 0, $TIP_ICONASTERISK)
-	endActiveTask()
+	EndActiveTask()
 
 	$activeTask = _DB_BeginWork($task[0])
 	TrayItemSetState($timeboxMenu,$TRAY_ENABLE)
@@ -254,12 +253,20 @@ Func SetCurrentTaskViaMouse()
 EndFunc
 
 Func ExitScript()
-	endActiveTask()
+	EndActiveTask()
 	_DB_Shutdown($db)
 	_WinAPI_DeregisterShellHookWindow($g_hForm)
 	Exit
 EndFunc
 
-Func endActiveTask()
+Func EndActiveTask()
 	If $activeTask <> 0 Then _DB_EndWork($activeTask[0])
+EndFunc
+
+Func EscapeStr($string)
+	Return StringReplace($string,"&","&&")
+EndFunc
+
+Func OpenGithubPage()
+	ShellExecute("https://github.com/tscz/time-tracker")
 EndFunc

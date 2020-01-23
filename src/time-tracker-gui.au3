@@ -22,11 +22,17 @@ Global $parent = 0
 
 ;GUI_Example()
 
-
 Func GUI_Example()
+	$parent =  GUICreate('')
+
 	Local $hDskDb = _DB_Startup(@ScriptDir & "\..\lib\sqlite3_29_0.dll")
 	Local $iAllTasks = _DB_GetTasks()
-	;MainGui($iAllTasks,0)
+	MainGui($iAllTasks,$parent)
+
+	While 1
+		Sleep(200) ; An idle loop.
+	WEnd
+
 	_DB_Shutdown($hDskDb)
 EndFunc
 
@@ -75,7 +81,7 @@ Func DeleteTask()
 EndFunc
 
 Func AddTask()
-	Local $id = InputBox("Task-ID", "Please enter a task id. (max. 12 characters)","", " " & 12)
+	Local $id = InputBox("Task-ID", "Please enter a task id. (max. 20 characters)","", " " & 20)
 
 	If (@error <> 0) Then
 		Return
@@ -86,7 +92,7 @@ Func AddTask()
 		Return
 	EndIf
 
-	Local $description = InputBox("Task-Description", "Please enter a task description. (max. 40 characters)","", " " & 40)
+	Local $description = InputBox("Task-Description", "Please enter a task description. (max. 50 characters)","", " " & 50)
 
 	If (@error <> 0) Then
 		Return
