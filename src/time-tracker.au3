@@ -42,10 +42,10 @@ HotKeySet("^+6", "SetCurrentTaskViaHotkey")
 HotKeySet("^+7", "SetCurrentTaskViaHotkey")
 HotKeySet("^+8", "SetCurrentTaskViaHotkey")
 HotKeySet("^+9", "SetCurrentTaskViaHotkey")
-HotKeySet("^+0", "SetCurrentTaskViaHotkey")
 
 ; Constants
 Global Const $DLL = @LocalAppDataDir & "\time-tracker\sqlite_x64.dll"
+Global Const $TASK_PATTERN = "(.*):\t(.*) (\(CTRL\+SHIFT\+[0-9]\))"
 
 ; Variables
 Global $iAllTasksTrayItems = [] ; Array of all available Task Tray Items
@@ -117,7 +117,7 @@ Func InitTrayTasks()
 
 	; Create tray items
 	For $i = UBound($iAllTasks) - 1 To 0 Step -1
-		$iAllTasksTrayItems[$i] = TrayCreateItem($iAllTasks[$i][0] & ":" & @TAB & $iAllTasks[$i][1], -1, 0, $TRAY_ITEM_RADIO)
+		$iAllTasksTrayItems[$i] = TrayCreateItem($iAllTasks[$i][0] & ":" & @TAB & $iAllTasks[$i][1]  & " (CTRL+SHIFT+" & $i + 1 & ")", -1, 0, $TRAY_ITEM_RADIO)
 		TrayItemSetOnEvent(-1, "setCurrentTaskViaMouse")
 
 		; Enable active task, if present
@@ -214,13 +214,12 @@ Func PauseTimebox()
 EndFunc
 
 Func SetCurrentTask($text)
-	TrayTip("Currently working on new task", $text, 0, $TIP_ICONASTERISK)
+	Local $task = StringRegExp($text,$TASK_PATTERN,$STR_REGEXPARRAYMATCH)
 
+	TrayTip("Now working on '" & $task[0] & "'", $task[1], 0, $TIP_ICONASTERISK)
 	endActiveTask()
 
-	Local $task = StringSplit($text,":")[1]
-
-	$activeTask = _DB_BeginWork($task)
+	$activeTask = _DB_BeginWork($task[0])
 	TrayItemSetState($timeboxMenu,$TRAY_ENABLE)
 EndFunc
 
@@ -229,12 +228,7 @@ Func SetCurrentTaskViaHotkey()
 
 	If $hotkeyId > UBound($iAllTasksTrayItems) Then Return
 
-	Local $newCurrentTask = 0
-	If $hotkeyId = 0 Then
-		$newCurrentTask = $iAllTasksTrayItems[9]
-	Else
-		$newCurrentTask = $iAllTasksTrayItems[$hotkeyId-1]
-	EndIf
+	Local $newCurrentTask = $iAllTasksTrayItems[$hotkeyId-1]
 
 	SetCurrentTask(TrayItemGetText($newCurrentTask))
 
